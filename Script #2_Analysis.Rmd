@@ -53,7 +53,7 @@ This project examines inflation in the New York Metro Area. It focuses mainly on
 
 The data for this work is from the monthly CPI data published by the Bureau of Labor Statistics (BLS). The data is extracted using an BLS' API, and then transformed, loaded and cleaned for use in this analysis.
 
-I extracted monthly data for all 61 items BLS publishes data for pertaining to the NY Metro Area. The data - `cpi_use` - is attached at the begining of this script and used for this analysis from here on out.^[See the `Data Download` file for the API code used to extract the data]
+I extracted monthly data for all 61 items BLS publishes data for pertaining to the NY Metro Area. The data - `cpi_use` - is attached at the begining of this script and used for this analysis from here on out.^[See the `Data Extract File` for the API code used to extract the data]
 
 #### Top 10 rows
 ```{r}
