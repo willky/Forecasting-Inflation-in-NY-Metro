@@ -1,7 +1,7 @@
 ---
 title: "Inflation in the NY-Metro Area"
 author: "William Kyeremateng"
-date: "`r format(Sys.time(), '%B %d, %Y')`"
+date: "January 20, 2022"
 output:
   html_document:
     theme: cerulean
@@ -17,10 +17,12 @@ spacing: double
 }
 </style>
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup , include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE,
+                      fig.width = 10, fig.height = 5, fig.align = "center")
 
 attach("cpi_use.RData")
+
 
 library(knitr)
 library(tidyverse)
@@ -43,29 +45,30 @@ library(tseries)
 library(TSstudio)
 ```
 
+
 ## Introduction
 
 Inflation has been a major topic of discussion over the past couple of years. The COVID-19 pandemic and the shutdowns that ensued from it brought on global supply shortages, causing prices to surge in several industries. Additionally, the Russia-Ukraine conflict has compounded issues and led to sharp increases in oil prices worldwide. 
 
 This project tracks inflation in the New York Metro Area using consumer price index (CPI) data from the Bureau of Labor Statistics (BLS). It focuses mainly on headline and core inflation, as well as price changes in select CPI components. Lastly, using an ARIMA model, it predicts the monthly headline inflation in the NY-Metro Area for the next 12 months.
 
-## Section 1. Download CPI Data using BLS API
+## Section 1. Download CPI Data using BLS API {.tabset .tabset-fade .tabset-pills}
 
 The data for this work is from the monthly CPI data published by the Bureau of Labor Statistics (BLS). The data is extracted using an BLS' API, and then transformed, loaded and cleaned for use in this analysis.
 
 I extracted monthly data for all 61 items BLS publishes data for pertaining to the NY Metro Area. The data - `cpi_use` - is attached at the begining of this script and used for this analysis from here on out.^[See the `Data Extract File` for the API code used to extract the data]
 
-#### Top 10 rows
+### Top 10 rows
 ```{r}
 cpi_use %>% head(10) %>% 
   kbl(align = "rrrrrrrrrrrrrrr") %>% 
   kable_material(c("striped", "hover"),
-                      html_font = "calibri") %>% 
+                 html_font = "calibri") %>% 
   scroll_box(width = "100%", height = "300px")
 ```
 
 
-#### Bottom 10 rows
+### Bottom 10 rows
 ```{r}
 cpi_use %>% 
   tail(10) %>% 
@@ -75,37 +78,14 @@ cpi_use %>%
   scroll_box(width = "100%", height = "300px")
 ```
 
-#
-The following are the observations from the tables above.
 
-+ CPI for `Motor Vehicle Insurance` has been discontinued as og the end of 2021.
+## Section 2. Exploratory Data Analysis
 
-+ The CPI for the latest month (`r max(cpi_use$date)`) is not available via the API download even though they have been released and published on BLS's website website in excel and html formats. 
+Here, I explore the data to find if any part needs to be cleaned.
 
-I delete the two items listed above during the data cleaning process. 
-
-
-## 2. Data Wrangling
-
-I remove the `Motor Vehicle Insurance` column and the last row of the merged data. Additionally, I convert the `year` variable to numeric and create a `date` column, which combines the month and year colums.
-
-```{r, message=FALSE, echo=FALSE}
-cpi_use <- 
-  cpi_use %>% 
-  mutate(date = as.POSIXct(strptime(paste0('1',cpi_use$periodName,cpi_use$year),'%d%B%Y')),
-         year = as.numeric(year)) %>% 
-  select(-period, -motor.vehicle.insurance) %>%
-  slice(-max(row_number()))   
-```
-
-
-## 2. Exploratory Data Analysis
-
-### 2.1. Data Summary and Structure {.tabset .tabset-fade .tabset-pills} 
+### 2.1. Data Summary and Structure
 
 The table below shows a summary of the data and distributions of  some of its variables.
-
-#### Data Summary
 
 ```{r}
 cpi_use %>% 
@@ -119,39 +99,47 @@ cpi_use %>%
 
 ### 2.2. Missing Data 
 
-The summary table shows that there are missing variables. Let's investigate further and figure out how to handle them.
+The summary table shows that there are missing values in the data. I use the plot below to visualize where the missing values are located to try to understand how to deal with them.
 
 ```{r}
-cpi_use %>% missmap(main = "Observed vs. Missing Values")
+cpi_use %>% missmap(main = "Observed vs Missing Data")
 ```
 
-The chart above shows that there are 15 percent of rows are missing. The missing data are from earlier years when BLS did not collect CPI data for those variables. The missing values do not need to be replaced or removed as they will not affect our analysis in any way.
+The chart above shows that, overall, about 15 percent of rows are have missing values. However,most of the missing data are from earlier years when BLS did not collect CPI data for those variables. Those missing values do not need to be replaced or removed as they will not affect our analysis in any way.
 
-## Section 3. Data Analysis
-
-In this section, I analyze the data and answer important questions about inflation for the most recent month (`r max(cpi_use$date)`) and recent trends using tables and visualizations.
+The chart and table above, it appears there are no recent data for `Motor Vehicle Insurance`. It appears that the BLS has discontinued the CPI series for the component as of the end of 2021. Hence, I delete all data for that CPI component during the cleaning process.
 
 
-### 2.1. 12-Month Percent Change in Inflation for the Latest Month
+### 2.3. Data Wrangling
 
-Let's calculate the 12-month percent change in CPI per month for all the variables and store that in a new data frame (`monthly_pchg`).
+Here, I remove the `Motor Vehicle Insurance` column convert the `year` column from to numeric. I also create a `date` column, which combines the month and year colums.
 
-```{r, echo=FALSE}
+```{r, message=FALSE}
+cpi_use <- 
+  cpi_use %>%
+  select(-period, -motor.vehicle.insurance) %>% 
+  mutate(year = as.numeric(year),
+         date = as.POSIXct(strptime(paste0('1',cpi_use$periodName,cpi_use$year),'%d%B%Y'))
+         )
+```
+
+
+## Section 3. Inflation in NY-Metro Area
+
+Ater exploring and cleaning the data, I examine the monthly inflation in the NY-Metro Area. Since I AM using a non-seasonally adjusted data, I do a year-over-year percentage change, comparing CPI for a month to CPI for the same month of the previous year.
+
+
+### 3.1. Monthly Inflation for All Components 
+
+Let's calculate the 12-month percent change in CPI per month for all the components and store that in a new data frame (`monthly_pchg`).
+
+```{r}
 monthly_pchg <- cpi_use %>% 
   arrange(date) %>%
   mutate(year = as.character(year)) %>% 
   mutate_if(is.numeric, 
-            ~round((./lag(., 12)-1)*100, 1)) %>% 
+            ~round((./lag(., 12)-1), 3)) %>% 
   filter(year != "2003")
-
-
-## Alternatively, we could use "Delt" function in "quantmod" package
-
-#monthly_pchg %>% cpi_use %>% 
-#  arrange(date) %>%
-#  mutate(year = as.character(year)) %>%
-#  mutate_if(is.numeric, ~Delt(., k=12, type = "log")) %>% 
-#  filter(year != "2003")
 ```
 
 Here is a table that shows the y-o-y percent changes in prices for all months.
@@ -167,15 +155,18 @@ monthly_pchg %>%
 ```
 
 
-#### 2.1. Headline and Core Inflation {.tabset .tabset-fade .tabset-pill}
+### 3.2. Inflation for the Latest Month {.tabset .tabset-pills .tabset-fade}
 
-Tab 1 shows the y-o-y percent changes in core and headline inflation for October 2022. 
+In this section, I analyze inflation for the most recent month for which data is available - December 2022.
 
-Tab 2 shows the y-o-y percent changes in prices for some of the important items.
+The chart in the first depicts headline and core inflation for December 2022 in the NY-Metro Area. 
+
+The second tab shows inflation for the month for some of important CPI components that matter in the NY-Metro Area and the rest of the U.S.
+
 
 #### Headline & Core Inflation
 
-```{r, echo=FALSE}
+```{r}
 monthly_pchg %>% select(date, all.items, all.items.less.food.energy) %>% 
   filter(date == max(date)) %>% 
   rename('Headline' = all.items,
@@ -185,20 +176,21 @@ monthly_pchg %>% select(date, all.items, all.items.less.food.energy) %>%
                values_to =  "p_chg",
                values_drop_na =  T) %>%
   ggplot(aes(x = Item, y = p_chg)) +
-  geom_bar(position = 'dodge', fill = '#80CBC4', stat = "identity") +
-  geom_text(aes(label = p_chg)) +
-  theme_few() +
+  geom_bar(position = 'dodge', fill = '#bb969a', stat = "identity") +
+  scale_y_continuous(labels = percent) +
+  geom_text(aes(label = percent(p_chg, accuracy = .1))) +
+  theme_economist() +
   theme(panel.grid = element_blank()) +
   labs(x = NULL,
        y = "Inflation Rate (%)",
-       title = "12-Month Percent Change in Inflation, July 2022",
+       title = "YoY Change in Inflation, Dec. 2022",
        subtitle = "Healine and Core CPI",
        caption = "Non seasonally adjusted data")
 ```
 
 #### Select Items
 
-```{r, echo=FALSE}
+```{r}
 monthly_pchg %>% 
   select(date, food, rent.of.primary.residence,household.energy, 
          medical.care, apparel, tuition.other.school.fees.childcare,
@@ -221,62 +213,71 @@ monthly_pchg %>%
   ggplot(aes(x = reorder(item, -p_chg),
              y = p_chg)
   ) +
-  geom_bar(position='dodge', fill = '#80CBC4', stat='identity') +
+  geom_bar(position='dodge', fill = '#bb969a', stat='identity') +
   #facet_wrap(~item) +
-  geom_text(aes(label = p_chg)) +
+  scale_y_continuous(labels = percent) +
+  geom_text(aes(label = percent(p_chg, accuracy = .1))) +
   coord_flip() +
-  theme_few() +
+  theme_economist() +
   theme(panel.grid.major = element_blank()) +
   labs(x = NULL,
        y = "Inflation Rate (%)",
-       title = "12-Month Percent Change in Inflation, Oct. 2022",
-       subtitle = "Select Items",
+       title = "YoY Change in Prices, Dec. 2022",
+       subtitle = "Select CPI Prices",
        caption = "Not seasonally adjusted")
 ```
 
 
-### 2.2. Trend: YoY Change in Prices
+### 3.3. Trends in Inflation {.tabset .tabset-pills .tabset-fade}
 
-In this section, I use line graphs to depict the trend in monthly inflation since 2004.
+In this section, I use line graphs to depict the trend in monthly inflation to show the recent spikes in the prices of certain items.
 
-#### Headline & Core: : Trend in Inflation
+#### Headline & Core
 
 ```{r}
 monthly_pchg %>% select(date, all.items, all.items.less.food.energy) %>% 
-  rename('Headline (% Change)' = all.items,
-         'Core (% Change)' = all.items.less.food.energy) %>% 
-  pivot_longer(2:3,
-               names_to = "item",
-               values_to = "p_chg",
-               values_drop_na = T) %>%
-  filter(item %in% c("Headline (% Change)", 
-                     "Core (% Change)")) %>% 
-  plot_ly(x=~date, y=~p_chg, type = 'scatter',  mode = 'line', color = ~item) %>% 
-  layout(title = "Monthly Headline & Core Inflation Since 2005",
-         xaxis = list(title = ""),
-         yaxis = list(title = "YoY Percent Change in Prices", ticksuffix = "%")
-         )
+  rename('Headline' = all.items,
+         'Core' = all.items.less.food.energy) %>%
+  pivot_longer(cols = 2:3, names_to = "Component:",
+               values_to = "p_chg", values_drop_na = T) %>%
+  ggplot(aes(x = date, y = p_chg)) +
+  geom_line(aes(color = `Component:`), lwd = 1) +
+  scale_y_continuous(labels = percent) +
+  scale_color_manual(values = c("#bb969a", "#00578a")) +
+  geom_hline(yintercept = 0, color = "White") +
+  theme_economist() +
+  theme(panel.grid.major = element_blank()) +
+  labs(x = NULL,
+       y = "Inflation Rate (%)",
+       title = "YoY Change in Prices",
+       subtitle = "Headline & Core Inflation",
+       caption = "Not seasonally adjusted")
+
 ```
 
-
-### 2.3. Deep Dive into Select Items
-
-A look at inflation trends for some of the important items.
 
 #### Gasoline
 
 ```{r}
-monthly_pchg %>%
-  plot_ly(x = ~date, y = ~gasoline.unleaded.regular, type = 'scatter', 
-          mode = 'line', name = "Regular Gas") %>% 
-  add_trace(y = ~gasoline.unleaded.midgrade, type = 'scatter', 
-            mode = 'line', name = 'Midgrade Gas') %>%
-  add_trace(y = ~gasoline.unleaded.premium, type = 'scatter', 
-            mode = 'line', name = 'Premium Gas') %>% 
-  layout(xaxis = list(title = ""),
-         yaxis = list(title = "YoY Percent Change", 
-                      ticksuffix = "%"),
-         title = "12-Month Percent Change in Gas Prices")
+monthly_pchg %>% select(date, gasoline.unleaded.regular, gasoline.unleaded.midgrade,
+                        gasoline.unleaded.premium) %>% 
+  rename(Regular = gasoline.unleaded.regular,
+         Midgrade = gasoline.unleaded.midgrade,
+         Premium = gasoline.unleaded.premium) %>%
+  pivot_longer(cols = 2:4, names_to = "Component:",
+               values_to = "p_chg", values_drop_na = T) %>%
+  ggplot(aes(x = date, y = p_chg)) +
+  geom_line(aes(color = `Component:`), lwd = 1) +
+  geom_hline(yintercept = 0, color = "White") +
+  scale_y_continuous(labels = percent) +
+  scale_color_manual(values = c("#ff8181" ,"#bb969a", "#00578a")) +
+  theme_economist() +
+  theme(panel.grid.major = element_blank()) +
+  labs(x = NULL,
+       y = "Inflation Rate (%)",
+       title = "YoY Change in Gas Prices",
+       caption = "Not seasonally adjusted")
+
 ```
 
 
@@ -284,47 +285,70 @@ monthly_pchg %>%
 
 ```{r}
 monthly_pchg %>%
-  plot_ly(x = ~date, y = ~food.at.home, type = 'scatter', 
-          mode = 'line', name = 'Food at Home') %>% 
-  add_trace(y = ~food.away.from.home, type = 'scatter', 
-            mode = 'line', name = 'Food Away from Home') %>% 
-  layout(xaxis = list(title = ""),
-         yaxis = list(title = "YoY Percent Change", 
-                      ticksuffix = "%"),
-         title = "12-Month Percent Change in Food Prices")
+  select(date, food.at.home, food.away.from.home) %>% 
+  rename(`Food at Home` = food.at.home, `Food From Outside` = food.away.from.home) %>% 
+    pivot_longer(cols = 2:3, names_to = "Component:",
+               values_to = "p_chg", values_drop_na = T) %>%
+  ggplot(aes(x = date, y = p_chg)) +
+  geom_line(aes(color = `Component:`), lwd = 1) +
+  geom_hline(yintercept = 0, color = "White") +
+  scale_y_continuous(labels = percent) +
+  scale_color_manual(values = c("#bb969a", "#00578a")) +
+  theme_economist() +
+  theme(panel.grid.major = element_blank()) +
+  labs(x = NULL,
+       y = "Inflation Rate (%)",
+       title = "YoY Change in Food Prices",
+       subtitle = "Food at Home vs. Food From Outside",
+       caption = "Not seasonally adjusted")
 ```
 
 
-#### Food at Home
+#### Select Food Items
 
 ```{r}
 monthly_pchg %>%
-  plot_ly(x = ~date, y = ~meats.poultry.fish.egg, type = 'scatter', 
-          mode = 'line', name = 'Meat, Poultry, Fish, Egg') %>%
-  add_trace(y = ~cereals.bakery.products, type = 'scatter', 
-            mode = 'line', name = 'Cereal & Bakery') %>% 
-  add_trace(y = ~dairy.related.products, type = 'scatter', 
-            mode = 'line', name = 'Dairy Products') %>%
-  add_trace(y = ~fruits.vegetables, type = 'scatter', 
-            mode = 'line', name = 'Fruits & Vegetables') %>%
-  layout(xaxis = list(title = ""),
-         yaxis = list(title = "YoY Percent Change", 
-                      ticksuffix = "%"),
-         title = "12-Month Percent Change in Prices for Select Food Items")
+  select(date, meats.poultry.fish.egg, fruits.vegetables, 
+         cereals.bakery.products, dairy.related.products) %>% 
+  rename(`Meat,Poultry,Fish,Eggs` = meats.poultry.fish.egg, `Fruits & Veggies` = fruits.vegetables, 
+         `Cereal & Baked Goods` = cereals.bakery.products, Dairy = dairy.related.products) %>% 
+    pivot_longer(cols = 2:5, names_to = "Component:",
+               values_to = "p_chg", values_drop_na = T) %>%
+  ggplot(aes(x = date, y = p_chg)) +
+  geom_line(aes(color = `Component:`), lwd = 1) +
+  geom_hline(yintercept = 0, color = "White") +
+  scale_y_continuous(labels = percent) +
+  scale_color_manual(values = c("#ff8181" ,"#bb969a", "#00578a", "#ff8c00")) +
+  theme_economist() +
+  theme(panel.grid.major = element_blank()) +
+  labs(x = NULL,
+       y = "Inflation Rate (%)",
+       title = "YoY Change in Food Prices",
+       subtitle = "Select Food Items",
+       caption = "Not seasonally adjusted")
 ```
+
 
 #### Shelter
 
 ```{r}
 monthly_pchg %>%
-  plot_ly(x = ~date, y = ~rent.of.primary.residence, type = 'scatter', 
-          mode = 'line', name = "Rent") %>% 
-  add_trace(y = ~owners.equivalent.rent.of.primary.residence, type = 'scatter', 
-            mode = 'line', name = 'Mortgage') %>% 
-  layout(xaxis = list(title = ""),
-         yaxis = list(title = "YoY Percent Change", 
-                      ticksuffix = "%"),
-         title = "12-Month Percent Change in the Cost of Shelter")
+  select(date, rent.of.primary.residence, owners.equivalent.rent.of.primary.residence) %>% 
+  rename(Rent = rent.of.primary.residence,
+         Mortgage = owners.equivalent.rent.of.primary.residence) %>% 
+    pivot_longer(cols = 2:3, names_to = "Component:",
+               values_to = "p_chg", values_drop_na = T) %>%
+  ggplot(aes(x = date, y = p_chg)) +
+  geom_line(aes(color = `Component:`), lwd = 1) +
+  geom_hline(yintercept = 0, color = "White") +
+  scale_y_continuous(labels = percent) +
+  scale_color_manual(values = c("#bb969a", "#00578a")) +
+  theme_economist() +
+  theme(panel.grid.major = element_blank()) +
+  labs(x = NULL,
+       y = "Inflation Rate (%)",
+       title = "YoY Change in Shelter Prices",
+       caption = "Not seasonally adjusted")
 ```
 
 
@@ -332,19 +356,26 @@ monthly_pchg %>%
 
 ```{r}
 monthly_pchg %>%
-   plot_ly(x = ~date, y = ~new.vehicles, type = 'scatter', 
-           mode = 'line', name = "New Vehicles") %>% 
-  add_trace(y = ~used.cars.trucks, type = 'scatter', 
-            mode = 'line', name = 'Used Vehicles') %>% 
-  layout(xaxis = list(title = ""),
-         yaxis = list(title = "YoY Percent Change", 
-                      ticksuffix = "%"),
-         title = "12-Month Percent Change in Vehicle Prices")
-  
+  select(date, new.vehicles, used.cars.trucks) %>% 
+  rename(`New Vehicle` = new.vehicles,
+         `Used Vehicle` = used.cars.trucks) %>% 
+    pivot_longer(cols = 2:3, names_to = "Component:",
+               values_to = "p_chg", values_drop_na = T) %>%
+  ggplot(aes(x = date, y = p_chg)) +
+  geom_line(aes(color = `Component:`), lwd = 1) +
+  geom_hline(yintercept = 0, color = "White") +
+  scale_y_continuous(labels = percent) +
+  scale_color_manual(values = c("#bb969a", "#00578a")) +
+  theme_economist() +
+  theme(panel.grid.major = element_blank()) +
+  labs(x = NULL,
+       y = "Inflation Rate (%)",
+       title = "YoY Change in Vehicle Prices",
+       caption = "Not seasonally adjusted")
 ```
 
 
-## 4. Forecasting Headline Inflation
+## Section 4. Forecasting Headline Inflation
 
 In this section, I forecast headline inflation for the next 12 months using ARIMA time series models.
 
@@ -352,15 +383,16 @@ First, the monthly headline headline inflation data frame (`monthly_pchg`) is co
 
 ```{r}
 h_ts <- 
-  monthly_pchg %>%
+  monthly_pchg %>% 
   select(date, all.items) %>% 
+  mutate(all.items = all.items*100) %>% 
   mutate(date = as.Date(date)) %>% 
   arrange(date) %>% 
   select(-date)
 
 
 h_ts <- h_ts %>%   
-  ts(start = c(2004, 1), end = c(2022, 10), frequency = 12)
+  ts(start = c(2004, 1), end = c(2022, 12), frequency = 12)
 ```
 
 
@@ -377,9 +409,11 @@ A plot of the time series.
 ```{r}
 library(ggfortify)
 
-autoplot(h_ts) + labs(title = "Inflation Rate in NY-Metro Area",
-                      x = "Month",
-                      y = "Infaltion Rate (%)") + theme_economist()
+autoplot(h_ts) +
+theme_economist() +
+labs(title = "Inflation Rate in NY-Metro Area",
+     x = "Month",
+     y = "Infaltion Rate (%)")
 ```
 
 
@@ -406,7 +440,7 @@ grid.arrange(
     ncol = 2)
 ```
 
-The ACF and PACF graphs show significant lags suggest that the time series may not be stationary, and may require differencing. But before differencing, I use the Augment Dickey Fuller, Phillips Perron and KPSS tests to verify if the series is truly non-stationary.^[Note that, the ADF and Phillips Perron tests are unit root tests with null hypothesis that "the series is not stationary or has is unit root." The KPSS test, on the other hand, is a stationarity test and therefore its a null hypothesis states that "the series is stationary or does not have unit root]
+The ACF and PACF graphs show significant lags suggest that the time series may not be stationary, and may require differencing. But before differencing, I use the Augment Dickey Fuller, Phillips Perron and KPSS tests to verify if the series is truly non-stationary.^[Note that, the ADF and Phillips Perron tests are unit root tests with null hypothesis: "the series is not stationary or has is unit root." The KPSS test, on the other hand, is a stationarity test, with a null hypothesis: "the series is stationary or does not have unit root]
 
 ```{r}
 library(tseries)
@@ -558,18 +592,12 @@ plot_forecast(forecast) %>%
 
 **Headline and Core Inflation**
 
-Driven by a 39 percent surge in energy prices, headline inflation in the NY-Metro Area peaked at 6.7 percent in June 2022. Since then, headline inflation has gradually declined each month, dropping to six percent as of October 2022.
+Driven by a 39 percent surge in energy prices, headline inflation in the NY-Metro Area peaked at 6.7 percent in June 2022. Since then, headline inflation has gradually declined each month, dropping to 5.9 percent as of November 2022. However, inflation accelerated to 6.3 percent in December 2022 - the highest jump in any December since at least 2005. 
 
-Core inflation, on the other hand, peaked in September 2022 at five percent and remained almost unchanged at 4.9 percent in October 2022.
+At 5.4 percent, core inflation hit a new high in recent times in December 2022. The December surge came on the heels of a three-month consecutive decline.
+
 
 **Headline Inflation Forecast**
 
-Headline inflation will begin to see sharp declines over the next 12 months as the Fed's rate hikes continue to cool price increases. Prices will decelerating to 5.5 percent in November before inching up to 5.7 percent in December, driven by holiday spending. Inflation will decline gradually afterwards, reaching 3.1 percent by August 2023. Nonetheless, inflation will not fall to the Fed's target rate of two percent over the next year.
-
-
-
-
-```{r}
-save.image("CPI Env.RData")
-```
+Headline inflation in the NY-Metro Area will fall from 6.3 percent in Dec. 2022 to six percent in Jan. 2023. Prices will continue to decline gradually each after that, with headline inflation dropping to 3.4 percent by December that year. Nonetheless, inflation does not fall to the Federal Reserve's target rate of two percent over the next 12 months.
 
