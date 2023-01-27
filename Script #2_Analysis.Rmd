@@ -440,7 +440,7 @@ grid.arrange(
     ncol = 2)
 ```
 
-The ACF and PACF graphs show significant lags suggest that the time series may not be stationary, and may require differencing. But before differencing, I use the Augment Dickey Fuller, Phillips Perron and KPSS tests to verify if the series is truly non-stationary.^[Note that, the ADF and Phillips Perron tests are unit root tests with null hypothesis: "the series is not stationary or has is unit root." The KPSS test, on the other hand, is a stationarity test, with a null hypothesis: "the series is stationary or does not have unit root]
+The ACF and PACF graphs show significant lags suggest that the time series may not be stationary, and may require differencing. But before differencing, I use the Augment Dickey Fuller, Phillips Perron and KPSS tests to verify if the series is truly non-stationary.^[Note that, the ADF and Phillips Perron tests are unit root tests with null hypothesis that "the series is not stationary or has is unit root." The KPSS test, on the other hand, is a stationarity test, with the null hypothesis that "the series is stationary or does not have unit root]
 
 ```{r}
 library(tseries)
@@ -486,7 +486,7 @@ kpss.test(dh_ts)
 pp.test(dh_ts)
 ```
 
-From the tests above, differencing the series makes it stationary.
+From the tests above, differencing the series makes the series stationary.
 
 
 ### 4.4. In-sample Forecasting and Validation
