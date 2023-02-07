@@ -1,0 +1,62 @@
+---
+title: "Forecasting Inflation in the NY-Metro Area"
+author: "William Kyeremateng"
+date: "January 20, 2022"
+output:
+  html_document:
+    theme: cerulean
+    toc: true
+    toc_float: true
+    df_print: paged
+spacing: double
+---
+
+<style type="text/css">
+  body{
+  font-size: 12pt;
+}
+</style>
+
+```{r setup , include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE,
+                      fig.width = 10, fig.height = 5, fig.align = "center")
+
+
+library(rjson)
+library(blsAPI)
+library(tidyverse)
+library(knitr)
+library(knitr)
+library(tidyverse)
+library(markdown)
+library(plotly)
+library(ggthemes)
+library(scales)
+library(lubridate)
+library(mice)
+library(kableExtra)
+library(AER)
+library(dlookr)
+library(summarytools)
+library(visdat)
+library(skimr)
+library(Amelia)
+library(gridExtra)
+library(urca)
+library(tseries)
+library(TSstudio)
+library(here)
+```
+
+
+```{r child = here::here("Script", "child 1.Rmd")}
+
+```
+
+```{r child = here::here("Script", "child 2.Rmd")}
+
+```
+
+```{r child = here::here("Script", "child 3.Rmd")}
+
+```
