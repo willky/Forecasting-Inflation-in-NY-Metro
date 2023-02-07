@@ -1,5 +1,5 @@
 ---
-title: "Inflation in the NY-Metro Area"
+title: "Forecasting Inflation in the NY-Metro Area"
 author: "William Kyeremateng"
 date: "January 20, 2022"
 output:
@@ -54,7 +54,7 @@ This project tracks inflation in the New York Metro Area using consumer price in
 
 ## Section 1. Download CPI Data using BLS API {.tabset .tabset-fade .tabset-pills}
 
-The data for this work is from the monthly CPI data published by the Bureau of Labor Statistics (BLS). The data is extracted using an BLS' API, and then transformed, loaded and cleaned for use in this analysis.
+The data for this work is from the monthly CPI data published by the Bureau of Labor Statistics (BLS). The data is extracted using an BLS' API, and then transformed, loaded and cleaned for use in this analysis. The latest month for which CPI data is available is **December 2022**.
 
 I extracted monthly data for all 61 items BLS publishes data for pertaining to the NY Metro Area. The data - `cpi_use` - is attached at the begining of this script and used for this analysis from here on out.^[See the `Data Extract File` for the API code used to extract the data]
 
