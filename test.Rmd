@@ -1,0 +1,53 @@
+---
+title: "Inflation in the NY-Metro Area"
+author: "William Kyeremateng"
+date: "January 20, 2022"
+output:
+  html_document:
+    theme: cerulean
+    toc: true
+    toc_float: true
+    df_print: paged
+spacing: double
+---
+
+<style type="text/css">
+  body{
+  font-size: 12pt;
+}
+</style>
+
+```{r setup , include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE,
+                      fig.width = 10, fig.height = 5, fig.align = "center")
+
+attach("cpi_use.RData")
+
+
+library(knitr)
+library(tidyverse)
+library(markdown)
+library(plotly)
+library(ggthemes)
+library(scales)
+library(lubridate)
+library(mice)
+library(kableExtra)
+library(AER)
+library(dlookr)
+library(summarytools)
+library(visdat)
+library(skimr)
+library(Amelia)
+library(gridExtra)
+library(urca)
+library(tseries)
+library(TSstudio)
+```
+
+
+## Introduction
+
+Inflation has been a major topic of discussion over the past couple of years. The COVID-19 pandemic and the shutdowns that ensued from it brought on global supply shortages, causing prices to surge in several industries. Additionally, the Russia-Ukraine conflict has compounded issues and led to sharp increases in oil prices worldwide. 
+
+This project tracks inflation in the New York Metro Area using consumer price index (CPI) data from the Bureau of Labor Statistics (BLS). It focuses mainly on headline and core inflation, as well as price changes in select CPI components. Lastly, using an ARIMA model, it predicts the monthly headline inflation in the NY-Metro Area for the next 12 months.
