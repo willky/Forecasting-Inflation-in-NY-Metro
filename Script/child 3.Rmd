@@ -1,0 +1,227 @@
+
+## Section 4. Forecasting Headline Inflation
+
+In this section, I forecast headline inflation for the next 12 months using ARIMA time series models.
+
+First, the monthly headline headline inflation data frame (`monthly_pchg`) is converted to a time series data in order to be used for the forecast.
+
+```{r}
+h_ts <- 
+  monthly_pchg %>% 
+  select(date, all.items) %>% 
+  mutate(all.items = all.items*100) %>% 
+  mutate(date = as.Date(date)) %>% 
+  arrange(date) %>% 
+  select(-date)
+
+
+h_ts <- h_ts %>%   
+  ts(start = c(2004, 1), end = c(2022, 12), frequency = 12)
+```
+
+
+### 4.1. Summary and Plot
+
+Take a quick look at the summary of the time series
+
+```{r}
+summary(h_ts)
+```
+
+A plot of the time series.
+
+```{r}
+library(ggfortify)
+
+autoplot(h_ts) +
+theme_economist() +
+labs(title = "Inflation Rate in NY-Metro Area",
+     x = "Month",
+     y = "Infaltion Rate (%)")
+```
+
+
+### 4.2. Decompose the Series
+
+```{r}
+library(TSstudio)
+
+ts_decompose(h_ts, type = "additive", showline = TRUE)
+```
+
+
+### 4.2. Check for stationarity
+
+Look at the ACF and PACF of the series.
+
+```{r}
+library(gridExtra)
+library(forecast)
+
+grid.arrange(
+    ggAcf(h_ts) + labs(title = "ACF of the Series"),
+    ggPacf(h_ts) + labs(title = "PACF of the Series"),
+    ncol = 2)
+```
+
+The ACF and PACF graphs show significant lags suggest that the time series may not be stationary, and may require differencing. But before differencing, I use the Augment Dickey Fuller, Phillips Perron and KPSS tests to verify if the series is truly non-stationary.^[Note that, the ADF and Phillips Perron tests are unit root tests with null hypothesis that "the series is not stationary or has is unit root." The KPSS test, on the other hand, is a stationarity test, with the null hypothesis that "the series is stationary or does not have unit root]
+
+```{r}
+library(tseries)
+
+adf.test(h_ts, k=2)
+```
+
+```{r}
+kpss.test(h_ts)
+```
+
+```{r}
+pp.test(h_ts)
+```
+
+From above, all three tests agree that the series is non-stationary.
+
+
+### 4.3. Differencing the series
+
+To make the series stationary, I take the first difference as shown below.
+
+```{r}
+dh_ts <- diff(h_ts)
+
+grid.arrange(
+  ggAcf(dh_ts) + labs(title = "ACF of the Series (Difference)"),
+  ggPacf(dh_ts) + labs(title = "PACF of the Series (Difference)"),
+  ncol = 2)
+```
+
+Now, let's use the three test to verify stationarity of the series.
+
+```{r}
+adf.test(dh_ts, k=2)
+```
+
+```{r}
+kpss.test(dh_ts)
+```
+
+```{r}
+pp.test(dh_ts)
+```
+
+From the tests above, differencing the series makes the series stationary.
+
+
+### 4.4. In-sample Forecasting and Validation
+
+Partition the data into training and testing sets.
+
+```{r}
+split_ts <- ts_split(h_ts, sample.out = 12)
+
+train <- split_ts$train
+test <- split_ts$test
+```
+
+To determine the arima terms to include in the model,  plot the diagnostics of the training set.
+
+```{r}
+arima_diag(train)
+```
+
+From the diagnostics plots, I can manually (using try-and-error) determine the ARIMA terms to include. However, I am going to use the 'auto.arima' function in R to determine the lags to include.
+
+```{r}
+auto_ARIMA <- auto.arima(train, seasonal = TRUE)
+
+summary(auto_ARIMA)
+```
+
+The above suggests an ARIMA terms of 4,1,3 with SARIMA term of 0,0,2.
+
+Plot the diagnostics of the model to make sure there are no unit roots.
+
+```{r}
+autoplot(auto_ARIMA)
+```
+
+The plot above shows that the model has no unit roots as all the roots are inside the unit circle.
+
+Also, the residuals plot above shows no lags, which is a good thing.
+
+```{r}
+check_res(auto_ARIMA)
+```
+
+
+**In Sample Forecast**
+
+```{r}
+fcst_test <- forecast(auto_ARIMA, h = 12)
+test_forecast(actual = h_ts, forecast.obj = fcst_test, test = test)
+```
+
+Check the accuracy of the model against the training set.
+
+```{r}
+accuracy(fcst_test, test)
+```
+
+
+
+### 4.5. Out of Sample Forecast
+
+Fit an ARIMA model on the full data set.
+
+```{r}
+fit.ARIMA <- auto.arima(h_ts, seasonal = TRUE)
+
+summary(fit.ARIMA)
+```
+
+Now, check the diagnostics residuals of the model.
+
+```{r}
+autoplot(fit.ARIMA)
+```
+
+
+```{r}
+check_res(fit.ARIMA)
+```
+
+Let's use the model to forecast inflation for the next 12 months.
+
+```{r}
+forecast <- forecast(h_ts, model = fit.ARIMA, h = 12)
+
+summary(forecast)
+```
+
+Plot the forecast with the actuals.
+
+```{r}
+plot_forecast(forecast) %>% 
+  layout(
+    title = "Actual & Forecasted Inflation Rates",
+    xaxis = list(title = ""),
+    yaxis = list(title = "Inflation Rate", 
+            ticksuffix = "%")
+  )
+```
+
+
+## 5. Conclusion
+
+**Headline and Core Inflation**
+
+Driven by a 39 percent surge in energy prices, headline inflation in the NY-Metro Area peaked at 6.7 percent in June 2022. Since then, headline inflation has gradually declined each month, dropping to 5.9 percent as of November 2022. However, inflation accelerated to 6.3 percent in December 2022 - the highest jump in any December since at least 2005. 
+
+At 5.4 percent, core inflation hit a new high in recent times in December 2022. The December surge came on the heels of a three-month consecutive decline.
+
+
+**Headline Inflation Forecast**
+
+Headline inflation in the NY-Metro Area will fall from 6.3 percent in Dec. 2022 to six percent in Jan. 2023. Prices will continue to decline gradually each month after that, with headline inflation dropping to 3.4 percent by December that year. Nonetheless, inflation does not fall to the Federal Reserve's target rate of two percent over the next 12 months.
+
