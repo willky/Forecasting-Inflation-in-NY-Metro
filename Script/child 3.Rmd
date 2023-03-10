@@ -3,10 +3,10 @@
 
 In this section, I forecast headline inflation for the next 12 months using ARIMA time series models.
 
-First, the monthly headline headline inflation data frame (`monthly_pchg`) is converted to a time series data in order to be used for the forecast.
+First, I convert the monthly headline inflation series to a time series object to allow for forecasting.
 
 ```{r}
-h_ts <- 
+headline <- 
   monthly_pchg %>% 
   select(date, all.items) %>% 
   mutate(all.items = all.items*100) %>% 
@@ -15,7 +15,8 @@ h_ts <-
   select(-date)
 
 
-h_ts <- h_ts %>%   
+h_ts <- 
+  headline %>%   
   ts(start = c(2004, 1), end = c(2022, 12), frequency = 12)
 ```
 
@@ -52,8 +53,6 @@ ts_decompose(h_ts, type = "additive", showline = TRUE)
 
 ### 4.2. Check for stationarity
 
-Look at the ACF and PACF of the series.
-
 ```{r}
 library(gridExtra)
 library(forecast)
@@ -64,7 +63,7 @@ grid.arrange(
     ncol = 2)
 ```
 
-The ACF and PACF graphs show significant lags suggest that the time series may not be stationary, and may require differencing. But before differencing, I use the Augment Dickey Fuller, Phillips Perron and KPSS tests to verify if the series is truly non-stationary.^[Note that, the ADF and Phillips Perron tests are unit root tests with null hypothesis that "the series is not stationary or has is unit root." The KPSS test, on the other hand, is a stationarity test, with the null hypothesis that "the series is stationary or does not have unit root]
+The ACF and PACF graphs show significant lags suggesting that the time series may not be stationary, and may require differencing. But before differencing, I use the Augment Dickey Fuller, Phillips Perron and KPSS tests to verify if the series is truly non-stationary.^[Note that, the ADF and Phillips Perron tests are unit root tests with null hypothesis that "the series is not stationary or has is unit root." The KPSS test, on the other hand, is a stationarity test, with the null hypothesis that "the series is stationary or does not have unit root]
 
 ```{r}
 library(tseries)
@@ -96,7 +95,7 @@ grid.arrange(
   ncol = 2)
 ```
 
-Now, let's use the three test to verify stationarity of the series.
+After that, I use the three test to verify stationarity of the series.
 
 ```{r}
 adf.test(dh_ts, k=2)
@@ -124,13 +123,13 @@ train <- split_ts$train
 test <- split_ts$test
 ```
 
-To determine the arima terms to include in the model,  plot the diagnostics of the training set.
+To determine the ARIMA terms to include in the model,  plot the diagnostics of the training set.
 
 ```{r}
 arima_diag(train)
 ```
 
-From the diagnostics plots, I can manually (using try-and-error) determine the ARIMA terms to include. However, I am going to use the 'auto.arima' function in R to determine the lags to include.
+From the diagnostics plots, I can manually (using try-and-error) determine the ARIMA terms to include. However, I am going to use the `auto.arima` function in R to automatically determine the lags to include.
 
 ```{r}
 auto_ARIMA <- auto.arima(train, seasonal = TRUE)
@@ -138,7 +137,7 @@ auto_ARIMA <- auto.arima(train, seasonal = TRUE)
 summary(auto_ARIMA)
 ```
 
-The above suggests an ARIMA terms of 4,1,3 with SARIMA term of 0,0,2.
+The above suggests an ARIMA terms of 3,1,0 with seasonal ARIMA terms of 0,0,2.
 
 Plot the diagnostics of the model to make sure there are no unit roots.
 
@@ -148,7 +147,7 @@ autoplot(auto_ARIMA)
 
 The plot above shows that the model has no unit roots as all the roots are inside the unit circle.
 
-Also, the residuals plot above shows no lags, which is a good thing.
+Also, the residuals plot below shows no lags, which is a good thing.
 
 ```{r}
 check_res(auto_ARIMA)
@@ -191,7 +190,7 @@ autoplot(fit.ARIMA)
 check_res(fit.ARIMA)
 ```
 
-Let's use the model to forecast inflation for the next 12 months.
+Use the model to forecast inflation for the next 12 months.
 
 ```{r}
 forecast <- forecast(h_ts, model = fit.ARIMA, h = 12)
@@ -223,5 +222,5 @@ At 5.4 percent, core inflation hit a new high in recent times in December 2022. 
 
 **Headline Inflation Forecast**
 
-Headline inflation in the NY-Metro Area will fall from 6.3 percent in Dec. 2022 to six percent in Jan. 2023. Prices will continue to decline gradually each month after that, with headline inflation dropping to 3.4 percent by December that year. Nonetheless, inflation does not fall to the Federal Reserve's target rate of two percent over the next 12 months.
+Headline inflation in the NY-Metro Area will fall from 6.3 percent in December 2022 to six percent in January 2023. Prices will continue to decline gradually each month after that, with headline inflation dropping to 3.4 percent by December that year. Nonetheless, inflation does not fall to the Federal Reserve's target rate of two percent over the next 12 months, in which case, the Federal Reserve will persist with its interest rate hikes beyond this year.
 

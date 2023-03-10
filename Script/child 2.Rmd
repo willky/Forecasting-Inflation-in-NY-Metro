@@ -2,13 +2,14 @@
 
 
 
-## Section 2. Exploratory Data Analysis
+## Section 2. Data Wrangling
 
-Here, I examine the data to spot anomalies that need to be cleaned, as well as patterns and trends that exist in the data.
+I examine the data in an attempt to spot anomalies that need to be cleaned, as well as patterns and trends that exist in the data.
+
 
 ### 2.1. Data Summary and Structure
 
-The table below shows a summary of the data and distributions of  some of its variables.
+The table below provides summary statistics about the variables in the data frame.
 
 ```{r}
 cpi_use %>% 
@@ -22,20 +23,22 @@ cpi_use %>%
 
 ### 2.2. Missing Data 
 
-The summary table shows that there are missing values in the data. I use the plot below to visualize where the missing values are located to try to understand how to deal with them.
+The summary table shows that the data has some missing are missing values. I use the plot below to visualize where the missing values are located to try to understand how to deal with them.
 
 ```{r}
 cpi_use %>% missmap(main = "Observed vs Missing Data")
 ```
 
-The chart above shows that, overall, about 15 percent of rows are have missing values. However,most of the missing data are from earlier years when BLS did not collect CPI data for those variables. Those missing values do not need to be replaced or removed as they will not affect our analysis in any way.
+The chart above shows that, overall, about 15 percent of the rows are have missing values. However, most of the missing data are from earlier years when BLS did not collect CPI data for those variables. Those missing values do not need to be replaced or removed as they will not affect our analysis in any way.
 
-The chart and table above, it appears there are no recent data for `Motor Vehicle Insurance`. It appears that the BLS has discontinued the CPI series for the component as of the end of 2021. Hence, I delete all data for that CPI component during the cleaning process.
+From the chart, it appears there are no recent data for `Motor Vehicle Insurance`. It appears that the BLS has discontinued the CPI series for the item as of the end of 2021. Hence, I remove the CPI series for `Motor Vehicle Insurance` from the data in the section below.
 
 
-### 2.3. Data Wrangling
+### 2.3. Creating and Dropping Variables
 
-Here, I remove the `Motor Vehicle Insurance` column convert the `year` column from to numeric. I also create a `date` column, which combines the month and year colums.
+In this section, I remove `Motor Vehicle Insurance` from the data as explained above. I also drop the `period` column as it is not needed for this analysis.
+
+Finally, I change the data type for the `year` field from character to number and create a new field called `date`, which combines the `month` and `year` columns.
 
 ```{r, message=FALSE}
 cpi_use <- 
@@ -49,12 +52,12 @@ cpi_use <-
 
 ## Section 3. Inflation in NY-Metro Area
 
-Ater exploring and cleaning the data, I examine the monthly inflation in the NY-Metro Area. Since I AM using a non-seasonally adjusted data, I do a year-over-year percentage change, comparing CPI for a month to CPI for the same month of the previous year.
+In calculating inflation, I do a year-over-year comparison since the CPI data used in this analysis are not seasonally adjusted. I compare CPI for the month to CPI for the same month of the previous year.
 
 
-### 3.1. Monthly Inflation for All Components 
+### 3.1. Monthly Inflation
 
-Let's calculate the 12-month percent change in CPI per month for all the components and store that in a new data frame (`monthly_pchg`).
+The code chunk below calculates 12-month percent change in CPI per month for all the components and stores that in a new data frame called `monthly_pchg`.
 
 ```{r}
 monthly_pchg <- cpi_use %>% 
@@ -65,7 +68,7 @@ monthly_pchg <- cpi_use %>%
   filter(year != "2003")
 ```
 
-Here is a table that shows the y-o-y percent changes in prices for all months.
+The table below shows the monthly inflation for all components.
 
 ```{r, echo=FALSE}
 monthly_pchg %>% 
@@ -80,11 +83,9 @@ monthly_pchg %>%
 
 ### 3.2. Inflation for the Latest Month {.tabset .tabset-pills .tabset-fade}
 
-In this section, I analyze inflation for the most recent month for which data is available - December 2022.
+In this section, I use bar charts to depict inflation in the NY-Metro area for the current month - December 2022.
 
-The chart in the first depicts headline and core inflation for December 2022 in the NY-Metro Area. 
-
-The second tab shows inflation for the month for some of important CPI components that matter in the NY-Metro Area and the rest of the U.S.
+The chart in the first tab depicts headline and core inflation, while the second tab shows inflation for some of the important CPI components.
 
 
 #### Headline & Core Inflation
@@ -153,7 +154,7 @@ monthly_pchg %>%
 
 ### 3.3. Trends in Inflation {.tabset .tabset-pills .tabset-fade}
 
-In this section, I use line graphs to depict the trend in monthly inflation to show the recent spikes in the prices of certain items.
+In this section, I use line graphs to depict the trend in monthly inflation, highlighting the recent spikes in the prices of certain items.
 
 #### Headline & Core
 
