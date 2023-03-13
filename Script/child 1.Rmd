@@ -30,7 +30,7 @@ payload <- list(
     'CUURS12ASEFV','CUURS12ASEHA','CUURS12ASEHC','CUURS12ASEHC01','CUURS12ASEHF'
   ),
   'startyear'=2003,
-  'endyear'=2022,
+  'endyear'=2023,
   'catalog'=FALSE,
   'calculations'=TRUE,
   'annualaverage'=FALSE,
@@ -214,7 +214,7 @@ payload <- list('seriesid'=c(
     'CUURS12ASS47016'
   ),
   'startyear'=2003,
-  'endyear'=2022,
+  'endyear'=2023,
   'catalog'=FALSE,
   'calculations'=TRUE,
   'annualaverage'=FALSE,
