@@ -1,7 +1,5 @@
 
 
-
-
 ## Section 2. Data Wrangling
 
 I examine the data in an attempt to spot anomalies that need to be cleaned, as well as patterns and trends that exist in the data.
@@ -107,7 +105,7 @@ monthly_pchg %>% select(date, all.items, all.items.less.food.energy) %>%
   theme(panel.grid = element_blank()) +
   labs(x = NULL,
        y = "Inflation Rate (%)",
-       title = "YoY Change in Inflation, Dec. 2022",
+       title = "YoY Change in Inflation, August 2023",
        subtitle = "Healine and Core CPI",
        caption = "Non seasonally adjusted data")
 ```

@@ -29,14 +29,14 @@ payload <- list(
     'CUURS12ASAT','CUURS12ASAT1','CUURS12ASATCLTB','CUURS12ASEEB','CUURS12ASEFJ',
     'CUURS12ASEFV','CUURS12ASEHA','CUURS12ASEHC','CUURS12ASEHC01','CUURS12ASEHF'
   ),
-  'startyear'=2003,
+  'startyear'=2004,
   'endyear'=2023,
   'catalog'=FALSE,
   'calculations'=TRUE,
   'annualaverage'=FALSE,
   #'seriestitle'=TRUE,
   #'area'=TRUE,
-  'registrationKey'='c798401369a64ada824b64aed51716ed')
+  'registrationKey'='b02e9f13d49a44d38e3574ed58881be5')
 response <- blsAPI(payload, 2)
 json <- fromJSON(response)
 
@@ -213,14 +213,14 @@ payload <- list('seriesid'=c(
     'CUURS12ASETB','CUURS12ASETB01','CUURS12ASETE','CUURS12ASS47014','CUURS12ASS47015',
     'CUURS12ASS47016'
   ),
-  'startyear'=2003,
+  'startyear'=2004,
   'endyear'=2023,
   'catalog'=FALSE,
   'calculations'=TRUE,
   'annualaverage'=FALSE,
   #'seriestitle'=TRUE,
   #'area'=TRUE,
-  'registrationKey'='c798401369a64ada824b64aed51716ed')
+  'registrationKey'='b02e9f13d49a44d38e3574ed58881be5')
 response <- blsAPI(payload, 2)
 json <- fromJSON(response)
 
@@ -323,5 +323,15 @@ cpi_use %>%
                       html_font = "calibri") %>% 
   scroll_box(width = "100%", height = "300px")
 ```
+
+#
+
+From the table above, there is no data for September 2023. Hence, I delete it from the analysis.
+
+```{r}
+cpi_use <- cpi_use %>% 
+  slice(1:(n()-1))
+```
+
 
 

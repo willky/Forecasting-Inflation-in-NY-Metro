@@ -17,7 +17,7 @@ headline <-
 
 h_ts <- 
   headline %>%   
-  ts(start = c(2004, 1), end = c(2022, 12), frequency = 12)
+  ts(start = c(2005, 1), end = c(2023, 8), frequency = 12)
 ```
 
 
